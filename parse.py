@@ -22,8 +22,33 @@ def client():
     #print(announceUrl)
     announceResponse = requests.get(announceUrl)
     #print(announceResponse.status_code)
-    print(bdecode(announceResponse.content))
-    
+    content = bdecode(announceResponse.content)
+    #print(content)
+    peerList = content['peers']
+    print(peerList)
+    peerIPs = []
+    peerPorts = []
+    ip = ''
+    portNumber = 0
+    currentByte = 0
+    for char in peerList:
+        if (currentByte < 4):
+            if (currentByte == 0):
+                ip = str(ord(char))
+            else:
+                ip += '.' + str(ord(char))
+            currentByte += 1
+        else:
+            if (currentByte == 4):
+                peerIPs.append(ip)
+                portNumber = ord(char)*256
+                currentByte = 5
+            else:
+                portNumber += ord(char)
+                peerPorts.append(portNumber)
+                currentByte = 0
+    print(peerIPs)
+    print(peerPorts)
 
 def get_torrent_info(filename):
     metainfo_file = open(str(filename), 'rb')
