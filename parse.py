@@ -26,27 +26,8 @@ def client():
     #print(content)
     peerList = content['peers']
     print(peerList)
-    peerIPs = []
-    peerPorts = []
-    ip = ''
-    portNumber = 0
-    currentByte = 0
-    for char in peerList:
-        if (currentByte < 4):
-            if (currentByte == 0):
-                ip = str(ord(char))
-            else:
-                ip += '.' + str(ord(char))
-            currentByte += 1
-        else:
-            if (currentByte == 4):
-                peerIPs.append(ip)
-                portNumber = ord(char)*256
-                currentByte = 5
-            else:
-                portNumber += ord(char)
-                peerPorts.append(portNumber)
-                currentByte = 0
+    peerIPs = get_peer_IP_list(peerList)
+    peerPorts = get_peer_port_list(peerList)
     print(peerIPs)
     print(peerPorts)
 
@@ -88,5 +69,41 @@ def get_length(metainfo):
 def bencode_info(info):
     encodedInfo = bencode(info)
     return encodedInfo
+
+def get_peer_IP_list(hexPeerList):
+    peerIPs = []
+    ip = ''
+    currentByte = 0
+    for char in hexPeerList:
+        if (currentByte < 4):
+            if (currentByte == 0):
+                ip = str(ord(char))
+            else:
+                ip += '.' + str(ord(char))
+            currentByte += 1
+        elif (currentByte == 4):
+            peerIPs.append(ip)
+            currentByte = 5
+        else:
+            currentByte = 0
+    return peerIPs
+
+def get_peer_port_list(hexPeerList):
+    peerPorts = []
+    portNumber = 0
+    currentByte = 0
+    for char in hexPeerList:
+        if (currentByte > 3):
+            if (currentByte == 4):
+                portNumber = ord(char)*256
+                currentByte = 5
+            else:
+                portNumber += ord(char)
+                peerPorts.append(portNumber)
+                currentByte = 0
+        else:
+            currentByte += 1
+            
+    return peerPorts
 
 client()
