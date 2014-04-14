@@ -1,4 +1,3 @@
-# -*- coding: cp1252 -*-
 from bencode import *
 from struct import *
 import hashlib
@@ -37,14 +36,14 @@ def client():
     # Actual connections begin here.
     sock = socket.socket()
     host = peerIPs[1]
-    port = 5100
+    port = peerPorts[1]
 
-    handshakeMessage = pack('b19s8s20s20s', 19, 'BitTorrent protocol', '00000000', sha1HashedInfo, peerID)
+    handshakeMessage = pack('b19s8s20s20s', 19, 'BitTorrent protocol', '', sha1HashedInfo, peerID)
     print(handshakeMessage)
     
     sock.connect((host, port))
     sock.send(handshakeMessage)
-    print(sock.recv())
+    print(sock.recv(1024))
     sock.close
 
 def get_torrent_info(filename):
