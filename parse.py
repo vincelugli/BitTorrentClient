@@ -64,37 +64,4 @@ def bencode_info(info):
     encodedInfo = bencode(info)
     return encodedInfo
 
-def get_info_from_torrent(torrent):
-    print(torrent)
-    infoLocation = torrent.find('info')
-    done = False
-    count = 1
-    currChar = infoLocation+4
-    result = ''
-    while done == False:
-        result += torrent[currChar]
-        currChar += 1
-        if (torrent[currChar] == 'i'):
-            while (torrent[currChar] != 'e'):
-                result += torrent[currChar]
-                currChar += 1
-            result += torrent[currChar]
-            print('\nRESULT:' + result + '\n')
-            currChar += 1
-        elif (torrent[currChar] == 'l'):
-            count += 1
-        elif (torrent[currChar] == 'd'):
-            count += 1
-        elif (torrent[currChar].isdigit()):
-            end = currChar + int(torrent[currChar]) + 2
-            result += torrent[currChar : end]
-            currChar = end
-        elif (torrent[currChar] == 'e'):
-            count -= 1
-        if (count == 0):
-            result += torrent[currChar]
-            done = True
-    print(result)
-    return result
-
 client()
