@@ -1,7 +1,9 @@
 # -*- coding: cp1252 -*-
 from bencode import *
+from struct import *
 import hashlib
 import requests
+import socket
 
 def client():
     filename = 'E:\Downloads\BitTorrentClient\Anathema -- Vol18 [mininova].torrent'
@@ -18,18 +20,32 @@ def client():
     #encodedInfo = get_info_from_torrent(open(filename, 'rb').read())
     #print(encodedInfo)
     sha1HashedInfo = hashlib.sha1(encodedInfo).digest()
-    announceUrl = announceKey + '?info_hash=' + sha1HashedInfo + '&peer_id=vincentlugli1.0sixty&port=5100&uploaded=0&downloaded=0&left=' + str(length) + '&compact=1'
+    peerID = 'vincentlugli1.0sixty'
+    announceUrl = announceKey + '?info_hash=' + sha1HashedInfo + '&peer_id=' + peerID + '&port=5100&uploaded=0&downloaded=0&left=' + str(length) + '&compact=1'
     #print(announceUrl)
     announceResponse = requests.get(announceUrl)
     #print(announceResponse.status_code)
     content = bdecode(announceResponse.content)
     #print(content)
     peerList = content['peers']
-    print(peerList)
+    #print(peerList)
     peerIPs = get_peer_IP_list(peerList)
     peerPorts = get_peer_port_list(peerList)
-    print(peerIPs)
-    print(peerPorts)
+    #print(peerIPs)
+    #print(peerPorts)
+
+    # Actual connections begin here.
+    sock = socket.socket()
+    host = peerIPs[1]
+    port = 5100
+
+    handshakeMessage = pack('b19s8s20s20s', 19, 'BitTorrent protocol', '00000000', sha1HashedInfo, peerID)
+    print(handshakeMessage)
+    
+    sock.connect((host, port))
+    sock.send(handshakeMessage)
+    print(sock.recv())
+    sock.close
 
 def get_torrent_info(filename):
     metainfo_file = open(str(filename), 'rb')
