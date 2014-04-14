@@ -19,9 +19,9 @@ def client():
     #print(encodedInfo)
     sha1HashedInfo = hashlib.sha1(encodedInfo).digest()
     announceUrl = announceKey + '?info_hash=' + sha1HashedInfo + '&peer_id=vincentlugli1.0sixty&port=5100&uploaded=0&downloaded=0&left=' + str(length) + '&compact=1'
-    print(announceUrl)
+    #print(announceUrl)
     announceResponse = requests.get(announceUrl)
-    print(announceResponse.status_code)
+    #print(announceResponse.status_code)
     print(bdecode(announceResponse.content))
     
 
