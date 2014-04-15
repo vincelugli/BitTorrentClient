@@ -34,16 +34,53 @@ def client():
     #print(peerPorts)
 
     # Actual connections begin here.
+
+    # Handshake
+    
+    handshakeMessage = pack('b19s8s20s20s', 19, 'BitTorrent protocol', '', sha1HashedInfo, peerID)
+    #print(handshakeMessage)
+
     sock = socket.socket()
     host = peerIPs[1]
     port = peerPorts[1]
-
-    handshakeMessage = pack('b19s8s20s20s', 19, 'BitTorrent protocol', '', sha1HashedInfo, peerID)
-    print(handshakeMessage)
     
     sock.connect((host, port))
     sock.send(handshakeMessage)
-    print(sock.recv(1024))
+    handshakeResponse = sock.recv(1024)
+    
+    # Message Passing (keep-alive, choke, unchoke, interested, not-interested, have, etc...)
+    
+    # Cases for message: keep-alive, choke, unchoke, interested, not-interested, have, bitfield, request, piece, cancel, and port
+    
+    options = {0 : 'choke',
+               1 : 'unchoke',
+               2 : 'interested',
+               3 : 'not interested',
+               4 : 'have',
+               5 : 'bitfield',
+               6 : 'request',
+               7 : 'piece',
+               8 : 'cancel',
+               9 : 'port', }
+
+    message = sock.recv(1024)
+    messageID = ord(message[4])
+    print(options[messageID])
+    if (messageID == 5):
+        print(bin(ord(message[5])))
+
+    message = sock.recv(1024)
+    messageID = ord(message[4])
+    print(options[messageID])
+    
+    #print(message)
+    #for x in range(0, len(message)):
+    #    print(ord(message[x]))
+    #message = sock.recv(1024)
+    #print(message)
+    #for x in range(0, len(message)):
+    #    print(ord(message[x]))
+    
     sock.close
 
 def get_torrent_info(filename):
