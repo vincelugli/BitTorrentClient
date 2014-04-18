@@ -129,6 +129,14 @@ def client():
             elif (messageID == 9):  # PORT
                 listenPort = sock.recv(2)
                 print('Listen Port: ' + listenPort)
+    sock.recv(6)
+    requestMessage = pack('ibiii', 13, 6, 0, 0, 16384/2)
+    #print(requestMessage)
+    sock.send(requestMessage)
+    received = sock.recv(16384)
+    f = open('test.txt', 'w')
+    f.write('Testing Recv!!\n')
+    f.write(received)
     
     sock.close
 
