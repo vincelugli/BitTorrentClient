@@ -15,8 +15,9 @@ def client():
     #print(length)
     infoDict = get_info(bencodeMetaInfo)
     #print(infoDict)
+    numberOfPieces = len(infoDict['pieces']) / 20
+    #print(numberOfPieces)
     encodedInfo = bencode_info(infoDict)
-    #encodedInfo = get_info_from_torrent(open(filename, 'rb').read())
     #print(encodedInfo)
     sha1HashedInfo = hashlib.sha1(encodedInfo).digest()
     peerID = 'vincentlugli1.0sixty'
@@ -49,6 +50,10 @@ def client():
     handshakeResponse = sock.recv(1024)
     
     # Message Passing (keep-alive, choke, unchoke, interested, not-interested, have, etc...)
+
+    keepAlive = True
+    isChocked = False
+    isInterested = False
     
     # Cases for message: keep-alive, choke, unchoke, interested, not-interested, have, bitfield, request, piece, cancel, and port
     
@@ -63,23 +68,67 @@ def client():
                8 : 'cancel',
                9 : 'port', }
 
-    message = sock.recv(1024)
-    messageID = ord(message[4])
-    print(options[messageID])
-    if (messageID == 5):
-        print(bin(ord(message[5])))
+    print('---------------')
+    messageLengthStr = sock.recv(4)
+    messageLengthInt = 0
+    for x in range(0, len(messageLengthStr)):
+        messageLengthInt += ord(messageLengthStr[x])
+    print('length: ' + str(messageLengthInt))
 
-    message = sock.recv(1024)
-    messageID = ord(message[4])
-    print(options[messageID])
+    clientHasPieces = []
     
-    #print(message)
-    #for x in range(0, len(message)):
-    #    print(ord(message[x]))
-    #message = sock.recv(1024)
-    #print(message)
-    #for x in range(0, len(message)):
-    #    print(ord(message[x]))
+    if (messageLengthInt != 0):
+        messageID = ord(sock.recv(1))
+        print('Message: ' + options[messageID])
+        if (messageLengthInt == 0):
+            keepAlive = True
+        elif (messageID == 0):
+            isChocked = True
+        elif (messageID == 1):
+            isChocked = False
+        elif (messageID == 2):
+            isInterested = True
+        elif (messageID == 3):
+            isInterested = False
+        else:
+            if (messageID == 4):    # HAVE
+                content = sock.recv(messageLengthInt-1)
+                # not sure what to do with the piece index here...
+                print('Piece Index: ' + content)
+            elif (messageID == 5):  # BITFIELD
+                bitfield = bin(ord(sock.recv(messageLengthInt-1)))
+                print('BitField: ' + bitfield)
+                # Looking to see which pieces the client has.
+                for x in range(2, numberOfPieces+2):
+                    if (bitfield[x] == '1'):
+                        clientHasPieces.append(True)
+                    else:
+                        clientHasPieces.append(False)
+                print(clientHasPieces)
+            elif (messageID == 6):  # REQUEST
+                index = ord(sock.recv(4))   # should be equal to (messageLengthInt - 1) / 3
+                begin = ord(sock.recv(4))
+                block = ord(sock.recv(4))
+                print('Index: ' + str(index))
+                print('Begin: ' + str(begin))
+                print('Block: ' + str(block))
+            elif (messageID == 7):  # PIECE
+                index = ord(sock.recv(4))
+                begin = ord(sock.recv(4))
+                block = ord(sock.recv(messageLengthInt - 9))
+                print('Index: ' + str(index))
+                print('Begin: ' + str(begin))
+                print('Block: ' + str(block))
+            elif (messageID == 8):  # CANCEL
+                index = ord(sock.recv(4))   # should be equal to (messageLengthInt - 1) / 3
+                begin = ord(sock.recv(4))
+                block = ord(sock.recv(4))
+                print('Index: ' + str(index))
+                print('Begin: ' + str(begin))
+                print('Block: ' + str(block))
+            elif (messageID == 9):  # PORT
+                listenPort = sock.recv(2)
+                print('Listen Port: ' + listenPort)
     
     sock.close
 
