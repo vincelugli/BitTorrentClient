@@ -4,6 +4,23 @@ import hashlib
 import requests
 import socket
 
+keepAlive = True
+isChocked = False
+isInterested = False
+clientHasPieces = []
+
+options = {0 : 'choke',
+           1 : 'unchoke',
+           2 : 'interested',
+           3 : 'not interested',
+           4 : 'have',
+           5 : 'bitfield',
+           6 : 'request',
+           7 : 'piece',
+           8 : 'cancel',
+           9 : 'port',
+           10 : 'keep-alive', }
+
 def client():
     filename = 'E:\Downloads\BitTorrentClient\Anathema -- Vol18 [mininova].torrent'
     #filename = 'E:\Downloads\BitTorrentClient\debian-live-6.0.7-amd64-gnome-desktop.iso.torrent'
@@ -15,8 +32,10 @@ def client():
     #print(length)
     infoDict = get_info(bencodeMetaInfo)
     #print(infoDict)
-    numberOfPieces = len(infoDict['pieces']) / 20
+    numberOfPieces = get_number_of_pieces(infoDict)
     #print(numberOfPieces)
+    lengthOfPiece = get_length_of_piece(infoDict)
+    print(lengthOfPiece)
     encodedInfo = bencode_info(infoDict)
     #print(encodedInfo)
     sha1HashedInfo = hashlib.sha1(encodedInfo).digest()
@@ -34,6 +53,19 @@ def client():
     #print(peerIPs)
     #print(peerPorts)
 
+    # List for the length of each piece remaining to be downloaded
+    
+    lengthOfPiecesLeft = []
+    blockSize = 16384     # 2^14 bytes
+    lengthLeft = length
+    while lengthLeft > 0:
+        if (lengthLeft - lengthOfPiece >= 0):
+            lengthOfPiecesLeft.append(lengthOfPiece)
+        else:
+            lengthOfPiecesLeft.append(lengthLeft)
+        lengthLeft -= lengthOfPiece
+    print(lengthOfPiecesLeft)
+
     # Actual connections begin here.
 
     # Handshake
@@ -42,8 +74,8 @@ def client():
     #print(handshakeMessage)
 
     sock = socket.socket()
-    host = peerIPs[1]
-    port = peerPorts[1]
+    host = peerIPs[2]
+    port = peerPorts[2]
     
     sock.connect((host, port))
     sock.send(handshakeMessage)
@@ -51,92 +83,56 @@ def client():
     
     # Message Passing (keep-alive, choke, unchoke, interested, not-interested, have, etc...)
 
-    keepAlive = True
-    isChocked = False
-    isInterested = False
-    
     # Cases for message: keep-alive, choke, unchoke, interested, not-interested, have, bitfield, request, piece, cancel, and port
     
-    options = {0 : 'choke',
-               1 : 'unchoke',
-               2 : 'interested',
-               3 : 'not interested',
-               4 : 'have',
-               5 : 'bitfield',
-               6 : 'request',
-               7 : 'piece',
-               8 : 'cancel',
-               9 : 'port', }
-
-    print('---------------')
     messageLengthStr = sock.recv(4)
-    messageLengthInt = 0
-    for x in range(0, len(messageLengthStr)):
-        messageLengthInt += ord(messageLengthStr[x])
-    print('length: ' + str(messageLengthInt))
-
-    clientHasPieces = []
+    messageLengthInt = parse_message_length(messageLengthStr)
     
-    if (messageLengthInt != 0):
-        messageID = ord(sock.recv(1))
-        print('Message: ' + options[messageID])
-        if (messageLengthInt == 0):
-            keepAlive = True
-        elif (messageID == 0):
-            isChocked = True
-        elif (messageID == 1):
-            isChocked = False
-        elif (messageID == 2):
-            isInterested = True
-        elif (messageID == 3):
-            isInterested = False
-        else:
-            if (messageID == 4):    # HAVE
-                content = sock.recv(messageLengthInt-1)
-                # not sure what to do with the piece index here...
-                print('Piece Index: ' + content)
-            elif (messageID == 5):  # BITFIELD
-                bitfield = bin(ord(sock.recv(messageLengthInt-1)))
-                print('BitField: ' + bitfield)
-                # Looking to see which pieces the client has.
-                for x in range(2, numberOfPieces+2):
-                    if (bitfield[x] == '1'):
-                        clientHasPieces.append(True)
-                    else:
-                        clientHasPieces.append(False)
-                print(clientHasPieces)
-            elif (messageID == 6):  # REQUEST
-                index = ord(sock.recv(4))   # should be equal to (messageLengthInt - 1) / 3
-                begin = ord(sock.recv(4))
-                block = ord(sock.recv(4))
-                print('Index: ' + str(index))
-                print('Begin: ' + str(begin))
-                print('Block: ' + str(block))
-            elif (messageID == 7):  # PIECE
-                index = ord(sock.recv(4))
-                begin = ord(sock.recv(4))
-                block = ord(sock.recv(messageLengthInt - 9))
-                print('Index: ' + str(index))
-                print('Begin: ' + str(begin))
-                print('Block: ' + str(block))
-            elif (messageID == 8):  # CANCEL
-                index = ord(sock.recv(4))   # should be equal to (messageLengthInt - 1) / 3
-                begin = ord(sock.recv(4))
-                block = ord(sock.recv(4))
-                print('Index: ' + str(index))
-                print('Begin: ' + str(begin))
-                print('Block: ' + str(block))
-            elif (messageID == 9):  # PORT
-                listenPort = sock.recv(2)
-                print('Listen Port: ' + listenPort)
-    sock.recv(6)
-    requestMessage = pack('ibiii', 13, 6, 0, 0, 16384/2)
-    #print(requestMessage)
+    payload = parse_message(messageLengthInt, sock, numberOfPieces)
+    print(payload)
+    
+    messageLengthStr = sock.recv(4)
+    messageLengthInt = parse_message_length(messageLengthStr)
+    
+    payload = parse_message(messageLengthInt, sock, numberOfPieces)
+    print(payload)
+
+    # Send an interested message to get to download files
+    requestMessage = pack('ib', 1, 2)
     sock.send(requestMessage)
-    received = sock.recv(16384)
-    f = open('test.txt', 'w')
-    f.write('Testing Recv!!\n')
-    f.write(received)
+    
+    messageLengthStr = sock.recv(4)
+    messageLengthInt = parse_message_length(messageLengthStr)
+    
+    payload = parse_message(messageLengthInt, sock, numberOfPieces)
+    print(payload)
+
+    index = 0
+    begin = 0
+    sentSize = 0
+    #f = open('test.txt', 'w')
+    #f.write('Testing!')
+    while length > 0:
+        if ((lengthOfPiecesLeft[index] - blockSize) > 0):
+            begin += blockSize
+            requestMessage = pack('4sbiii', '0013', 6, index, begin, blockSize)
+            sentSize = blockSize
+        else:
+            sentSize = lengthOfPiecesLeft[index]
+            requestMessage = pack('4sbiii', '0013', 6, index, begin, sentSize)
+            index += 1
+        length -= sentSize
+        
+        sock.send(requestMessage)
+        messageLengthStr = sock.recv(4)
+        messageLengthInt = parse_message_length(messageLengthStr)
+        
+        payload = parse_message(messageLengthInt, sock, numberOfPieces)
+        print(payload)
+
+        #received = sock.recv(sentSize)
+        #print(received)     # This should be a PIECE message. Currently, it's not...
+        #write_to_file(f, received)
     
     sock.close
 
@@ -174,6 +170,12 @@ def get_length(metainfo):
         return total        
     else:
         return metainfo['info']['length']
+
+def get_number_of_pieces(infoDict):
+    return len(infoDict['pieces']) / 20
+
+def get_length_of_piece(infoDict):
+    return infoDict['piece length']
 
 def bencode_info(info):
     encodedInfo = bencode(info)
@@ -214,5 +216,86 @@ def get_peer_port_list(hexPeerList):
             currentByte += 1
             
     return peerPorts
+
+def parse_message_length(messageLengthStr):
+    messageLengthInt = 0
+    for x in range(0, len(messageLengthStr)):
+        messageLengthInt += (10**(4-x))*ord(messageLengthStr[x])
+    #print('length: ' + str(messageLengthInt))
+
+    return messageLengthInt
+
+def parse_message(messageLengthInt, sock, numberOfPieces):
+    # Global declarations
+    global keepAlive
+    global isChocked
+    global isInterested
+    global clientHasPieces
+
+    print('---------------')
+    
+    if (messageLengthInt != 0):
+        messageID = ord(sock.recv(1))
+    else:
+        messageID = 10
+    print('Message: ' + options[messageID])
+    if (messageLengthInt == 0):         # KEEP-ALIVE
+        keepAlive = True
+    elif (messageID == 0):              # CHOKE
+        isChocked = True
+    elif (messageID == 1):              # UNCHOKE
+        isChocked = False
+    elif (messageID == 2):              # INTERESTED
+        isInterested = True
+    elif (messageID == 3):              # UNINTERESTED
+        isInterested = False
+    else:
+        if (messageID == 4):            # HAVE
+            content = sock.recv(messageLengthInt-1)
+            # not sure what to do with the piece index here...
+            print('Piece Index: ' + content)
+            return [messageID, content]
+        elif (messageID == 5):          # BITFIELD
+            bitfield = bin(ord(sock.recv(messageLengthInt-1)))
+            print('BitField: ' + bitfield)
+            # Looking to see which pieces the client has.
+            for x in range(2, numberOfPieces+2):
+                if (bitfield[x] == '1'):
+                    clientHasPieces.append(True)
+                else:
+                    clientHasPieces.append(False)
+            print(clientHasPieces)
+            return [messageID, clientHasPieces]
+        elif (messageID == 6):          # REQUEST
+            index = ord(sock.recv(4))   # should be equal to (messageLengthInt - 1) / 3
+            begin = ord(sock.recv(4))
+            block = ord(sock.recv(4))
+            print('Index: ' + str(index))
+            print('Begin: ' + str(begin))
+            print('Block: ' + str(block))
+            return [messageID, index, begin, block]
+        elif (messageID == 7):          # PIECE
+            index = ord(sock.recv(4))
+            begin = ord(sock.recv(4))
+            block = ord(sock.recv(messageLengthInt - 9))
+            print('Index: ' + str(index))
+            print('Begin: ' + str(begin))
+            print('Block: ' + str(block))
+            return [messageID, index, begin, block]
+        elif (messageID == 8):          # CANCEL
+            index = ord(sock.recv(4))   # should be equal to (messageLengthInt - 1) / 3
+            begin = ord(sock.recv(4))
+            block = ord(sock.recv(4))
+            print('Index: ' + str(index))
+            print('Begin: ' + str(begin))
+            print('Block: ' + str(block))
+            return [messageID, index, begin, block]
+        elif (messageID == 9):          # PORT
+            listenPort = sock.recv(2)
+            print('Listen Port: ' + listenPort)
+            return [messageID, listenPort]
+
+def write_to_file(f, content):
+    f.write(content)
 
 client()
