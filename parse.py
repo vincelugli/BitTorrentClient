@@ -74,8 +74,8 @@ def client():
     #print(handshakeMessage)
 
     sock = socket.socket()
-    host = peerIPs[2]
-    port = peerPorts[2]
+    host = peerIPs[1]
+    port = peerPorts[1]
     
     sock.connect((host, port))
     sock.send(handshakeMessage)
@@ -86,6 +86,7 @@ def client():
     # Cases for message: keep-alive, choke, unchoke, interested, not-interested, have, bitfield, request, piece, cancel, and port
     
     messageLengthStr = sock.recv(4)
+    print(unpack('>4B', messageLengthStr))
     messageLengthInt = parse_message_length(messageLengthStr)
     
     payload = parse_message(messageLengthInt, sock, numberOfPieces)
@@ -112,14 +113,18 @@ def client():
     sentSize = 0
     #f = open('test.txt', 'w')
     #f.write('Testing!')
+
+    # Message Requesting
+    # TODO: change endianness from little to big
+    
     while length > 0:
         if ((lengthOfPiecesLeft[index] - blockSize) > 0):
             begin += blockSize
-            requestMessage = pack('4sbiii', '0013', 6, index, begin, blockSize)
+            requestMessage = pack('>ibiii', 13, 6, index, begin, blockSize)
             sentSize = blockSize
         else:
             sentSize = lengthOfPiecesLeft[index]
-            requestMessage = pack('4sbiii', '0013', 6, index, begin, sentSize)
+            requestMessage = pack('>ibiii', 13, 6, index, begin, sentSize)
             index += 1
         length -= sentSize
         
@@ -221,7 +226,6 @@ def parse_message_length(messageLengthStr):
     messageLengthInt = 0
     for x in range(0, len(messageLengthStr)):
         messageLengthInt += (10**(4-x))*ord(messageLengthStr[x])
-    #print('length: ' + str(messageLengthInt))
 
     return messageLengthInt
 
