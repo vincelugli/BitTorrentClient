@@ -119,13 +119,18 @@ def client():
     
     while length > 0:
         if ((lengthOfPiecesLeft[index] - blockSize) > 0):
-            begin += blockSize
-            requestMessage = pack('>ibiii', 13, 6, index, begin, blockSize)
+            print(hex(index))
+            print(hex(begin))
+            print(hex(blockSize))
+            requestMessage = pack('>4BB4B4B4B', 13, 6, index, begin, blockSize) # this is where I think the problem lies. 00 00 00 0d | 06 | 00 00 00 00 | 00 00 00 00 | 40 00 00 00
+            print(requestMessage + 'end')
             sentSize = blockSize
+            begin += sentSize
         else:
             sentSize = lengthOfPiecesLeft[index]
             requestMessage = pack('>ibiii', 13, 6, index, begin, sentSize)
             index += 1
+            begin = 0
         length -= sentSize
         
         sock.send(requestMessage)
@@ -242,17 +247,24 @@ def parse_message(messageLengthInt, sock, numberOfPieces):
         messageID = ord(sock.recv(1))
     else:
         messageID = 10
+        print('Message: ' + options[messageID])
+        return True
     print('Message: ' + options[messageID])
     if (messageLengthInt == 0):         # KEEP-ALIVE
         keepAlive = True
+        return True
     elif (messageID == 0):              # CHOKE
         isChocked = True
+        return True
     elif (messageID == 1):              # UNCHOKE
         isChocked = False
+        return False
     elif (messageID == 2):              # INTERESTED
         isInterested = True
+        return True
     elif (messageID == 3):              # UNINTERESTED
         isInterested = False
+        return False
     else:
         if (messageID == 4):            # HAVE
             content = sock.recv(messageLengthInt-1)
