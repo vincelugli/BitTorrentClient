@@ -128,6 +128,7 @@ def client():
     
     while length > 0:
         if ((lengthOfPiecesLeft[index] - blockSize) > 0):# and (sizeOfFiles[currentFile] - blockSize) > 0):
+            # Get piece of size 16384
             requestMessage = pack('>IBIII', 13, 6, index, begin, blockSize) 
             #print('Message Sent: ' + ':'.join(x.encode('hex') for x in requestMessage))
 
@@ -136,9 +137,12 @@ def client():
             messageLengthInt = parse_message_length(messageLengthStr)
             
             payload = parse_message(messageLengthInt, sock, numberOfPieces)
+
+            # If the proper message, do some housekeeping
             if (payload[0] == 7):
                 sentSize = blockSize
                 lengthOfPiecesLeft[index] -= len(payload[3])
+                length -= len(payload[3])
                 #sizeOfFiles[currentFile] -= len(payload[3])
                 begin += sentSize
                 write_to_file(f, payload[3])
@@ -196,6 +200,7 @@ def client():
 ##                    
 ##            print('Number of Pieces: ' + str(index+1) + '/' + str(numberOfPieces))
         else:
+            # Get a block of size equal to the rest of the piece.
             sentSize = lengthOfPiecesLeft[index]
             requestMessage = pack('>IBIII', 13, 6, index, begin, sentSize) 
             #print(':'.join(x.encode('hex') for x in requestMessage))
@@ -205,14 +210,17 @@ def client():
             messageLengthInt = parse_message_length(messageLengthStr)
             
             payload = parse_message(messageLengthInt, sock, numberOfPieces)
+
+            # Housekeeping
             if (payload[0] == 7):
                 print('Number of Pieces: ' + str(index+1) + '/' + str(numberOfPieces))
                 #sizeOfFiles[currentFile] -= len(payload[3])
+                # move to the next piece
                 index += 1
+                # reset to the start of the piece.
                 begin = 0
                 write_to_file(f, payload[3])
-        if (payload[0] == 7):
-            length -= len(payload[3])
+                length -= len(payload[3])
             
         
         if (index >= numberOfPieces):
