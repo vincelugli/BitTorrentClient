@@ -3,6 +3,7 @@ from struct import *
 import hashlib
 import requests
 import socket
+import fileinput
 
 keepAlive = True
 isChocked = False
@@ -22,8 +23,8 @@ options = {0 : 'choke',
            10 : 'keep-alive', }
 
 def client():
-    #filename = 'E:\Downloads\BitTorrentClient\The Chris Gethard Show - Episode-.torrent'                            # USE THIS TO TEST BASIC TORRENT FUNCTIONALITY
-    filename = 'E:\Downloads\BitTorrentClient\Anathema -- Vol18 [mininova].torrent'                # USE THIS TO TEST MULTIFILE TORRENT
+    filename = 'E:\Downloads\BitTorrentClient\octa.ply.torrent'                            # USE THIS TO TEST BASIC TORRENT FUNCTIONALITY
+    #filename = 'E:\Downloads\BitTorrentClient\Anathema -- Vol18 [mininova].torrent'                # USE THIS TO TEST MULTIFILE TORRENT
     #filename = 'E:\Downloads\BitTorrentClient\dsl-4.4.10.iso.torrent'                              # USE THIS TO TEST PEERS THAT DO NOT HAVE WHOLE FILE
     #filename = 'E:\Downloads\BitTorrentClient\debian-live-6.0.7-amd64-gnome-desktop.iso.torrent'   # USE THIS TO TEST LARGE FILE TORRENT WITH ENGRYPTION (I THINK)
     bencodeMetaInfo = get_torrent_info(filename)
@@ -31,8 +32,8 @@ def client():
     announceKey = get_announce(bencodeMetaInfo)
     #print(announceKey)
     sizeOfFiles = get_length(bencodeMetaInfo)
-    length = sizeOfFiles[sizeOfFiles[0]+1]
-    print(sizeOfFiles)
+    length = sizeOfFiles[sizeOfFiles[0]]
+    #print(sizeOfFiles)
     isMultiFile = False
     if (sizeOfFiles[0] > 1):
         isMultiFile = True
@@ -49,14 +50,14 @@ def client():
     peerID = 'vincentlugli1.0sixty'
     announceUrl = announceKey + '?info_hash=' + sha1HashedInfo + '&peer_id=' + peerID + '&port=5100&uploaded=0&downloaded=0&left=' + str(length) + '&compact=1'
     #print(announceUrl)
-    announceResponse = requests.get(announceUrl)
+    #announceResponse = requests.get(announceUrl)
     #print(announceResponse.status_code)
-    content = bdecode(announceResponse.content)
+    #content = bdecode(announceResponse.content)
     #print(content)
-    peerList = content['peers']
+    #peerList = content['peers']
     #print(peerList)
-    peerIPs = get_peer_IP_list(peerList)
-    peerPorts = get_peer_port_list(peerList)
+    #peerIPs = get_peer_IP_list(peerList)
+    #peerPorts = get_peer_port_list(peerList)
     #print(peerIPs)
     #print(peerPorts)
 
@@ -71,7 +72,7 @@ def client():
         else:
             lengthOfPiecesLeft.append(lengthLeft)
         lengthLeft -= lengthOfPiece
-    print(lengthOfPiecesLeft)
+    #print(lengthOfPiecesLeft)
 
     # Actual connections begin here.
 
@@ -81,8 +82,8 @@ def client():
     #print(handshakeMessage)
 
     sock = socket.socket()
-    host = peerIPs[1]
-    port = peerPorts[1]
+    host = '143.215.50.6'#peerIPs[4]
+    port = 12342#peerPorts[4]
     
     sock.connect((host, port))
     sock.send(handshakeMessage)
@@ -121,12 +122,12 @@ def client():
     begin = 0
     sentSize = 0
     currentFile = 1;
-    f = open(infoDict['files'][currentFile-1]['path'][0], 'w')#infoDict['name'], 'w')# FOR MULTI FILE: infoDict['files'][0]['path'][0], 'w')
+    f = open(infoDict['name'], 'w')#infoDict['files'][currentFile-1]['path'][0], 'w')## FOR MULTI FILE: infoDict['files'][0]['path'][0], 'w')
     
     # Message Requesting
     
     while length > 0:
-        if ((lengthOfPiecesLeft[index] - blockSize) > 0 and (sizeOfFiles[currentFile] - blockSize) > 0):
+        if ((lengthOfPiecesLeft[index] - blockSize) > 0):# and (sizeOfFiles[currentFile] - blockSize) > 0):
             requestMessage = pack('>IBIII', 13, 6, index, begin, blockSize) 
             #print('Message Sent: ' + ':'.join(x.encode('hex') for x in requestMessage))
 
@@ -138,57 +139,63 @@ def client():
             if (payload[0] == 7):
                 sentSize = blockSize
                 lengthOfPiecesLeft[index] -= len(payload[3])
-                sizeOfFiles[currentFile] -= len(payload[3])
+                #sizeOfFiles[currentFile] -= len(payload[3])
                 begin += sentSize
+                write_to_file(f, payload[3])
             print('Number of Pieces: ' + str(index+1) + '/' + str(numberOfPieces))
-        elif (lengthOfPiecesLeft[index] - blockSize > 0 and sizeOfFiles[currentFile] - blockSize <= 0):
-            sentSize = sizeOfFiles[currentFile]
-            requestMessage = pack('>IBIII', 13, 6, index, begin, sentSize) 
-            #print('Message Sent: ' + ':'.join(x.encode('hex') for x in requestMessage))
-
-            sock.send(requestMessage)
-            messageLengthStr = sock.recv(4)
-            messageLengthInt = parse_message_length(messageLengthStr)
             
-            payload = parse_message(messageLengthInt, sock, numberOfPieces)
-            print('End of one File!')
-            if (payload[0] == 7):
-                lengthOfPiecesLeft[index] -= len(payload[3])
-                sizeOfFiles[currentFile] -= len(payload[3])
-                begin += sentSize
-                currentFile += 1
-                
-                if (len(infoDict['files']) != currentFile-1):
-                    f.close()
-                    f = open(infoDict['files'][currentFile-1]['path'][0], 'w')
-            print('Number of Pieces: ' + str(index+1) + '/' + str(numberOfPieces))
-        elif (lengthOfPiecesLeft[index] - blockSize <= 0 and sizeOfFiles[currentFile] - blockSize <= 0):
-            sentSize = min(lengthOfPiecesLeft[index], sizeOfFiles[currentFile])
-            requestMessage = pack('>IBIII', 13, 6, index, begin, sentSize) 
-            #print('Message Sent: ' + ':'.join(x.encode('hex') for x in requestMessage))
-
-            sock.send(requestMessage)
-            messageLengthStr = sock.recv(4)
-            messageLengthInt = parse_message_length(messageLengthStr)
-            
-            payload = parse_message(messageLengthInt, sock, numberOfPieces)
-            print('End of one File!')
-            if (payload[0] == 7):
-                lengthOfPiecesLeft[index] -= len(payload[3])
-                sizeOfFiles[currentFile] -= len(payload[3])
-                if (sizeOfFiles[currentFile] <= 0):
-                    begin += sentSize
-                    currentFile += 1
-                if (lengthOfPiecesLeft[index] <= 0):
-                    index += 1
-                    being = 0
-                
-                if (len(infoDict['files']) != currentFile-1):
-                    f.close()
-                    f = open(infoDict['files'][currentFile-1]['path'][0], 'w')
-            print('Number of Pieces: ' + str(index+1) + '/' + str(numberOfPieces))
+##        elif (lengthOfPiecesLeft[index] - blockSize > 0 and sizeOfFiles[currentFile] - blockSize <= 0):
+##            print('FIRST ELSEIF!')
+##            sentSize = sizeOfFiles[currentFile]
+##            requestMessage = pack('>IBIII', 13, 6, index, begin, sentSize) 
+##            #print('Message Sent: ' + ':'.join(x.encode('hex') for x in requestMessage))
+##
+##            sock.send(requestMessage)
+##            messageLengthStr = sock.recv(4)
+##            messageLengthInt = parse_message_length(messageLengthStr)
+##            
+##            payload = parse_message(messageLengthInt, sock, numberOfPieces)
+##            print('End of one File!')
+##            if (payload[0] == 7):
+##                lengthOfPiecesLeft[index] -= len(payload[3])
+##                sizeOfFiles[currentFile] -= len(payload[3])
+##                print(sizeOfFiles[currentFile])
+##                begin += sentSize
+##                write_to_file(f, payload[3])
+##                
+##                if (len(infoDict['files']) != currentFile and sizeOfFiles[currentFile] <= 0):
+##                    f.close()
+##                    f = open(infoDict['files'][currentFile-1]['path'][0], 'w')
+##            print('Number of Pieces: ' + str(index+1) + '/' + str(numberOfPieces))
+##        elif (lengthOfPiecesLeft[index] - blockSize <= 0 and sizeOfFiles[currentFile] - blockSize <= 0):
+##            print('SECOND ELSEIF!')
+##            sentSize = min(lengthOfPiecesLeft[index], sizeOfFiles[currentFile])
+##            requestMessage = pack('>IBIII', 13, 6, index, begin, sentSize) 
+##            #print('Message Sent: ' + ':'.join(x.encode('hex') for x in requestMessage))
+##
+##            sock.send(requestMessage)
+##            messageLengthStr = sock.recv(4)
+##            messageLengthInt = parse_message_length(messageLengthStr)
+##            
+##            payload = parse_message(messageLengthInt, sock, numberOfPieces)
+##            print('End of one File!')
+##            if (payload[0] == 7):
+##                lengthOfPiecesLeft[index] -= len(payload[3])
+##                sizeOfFiles[currentFile] -= len(payload[3])
+##                print(sizeOfFiles[currentFile])
+##                if (sizeOfFiles[currentFile] <= 0):
+##                    begin += sentSize
+##                    currentFile += 1
+##                    write_to_file(f, payload[3])
+##                    if (len(infoDict['files']) != currentFile-1):
+##                        f.close()
+##                        f = open(infoDict['files'][currentFile-1]['path'][0], 'w')
+##                if (lengthOfPiecesLeft[index] <= 0):
+##                    index += 1
+##                    begin = 0
+##                    
+##            print('Number of Pieces: ' + str(index+1) + '/' + str(numberOfPieces))
         else:
-            print('ELSE!')
             sentSize = lengthOfPiecesLeft[index]
             requestMessage = pack('>IBIII', 13, 6, index, begin, sentSize) 
             #print(':'.join(x.encode('hex') for x in requestMessage))
@@ -200,18 +207,20 @@ def client():
             payload = parse_message(messageLengthInt, sock, numberOfPieces)
             if (payload[0] == 7):
                 print('Number of Pieces: ' + str(index+1) + '/' + str(numberOfPieces))
-                sizeOfFiles[currentFile] -= len(payload[3])
+                #sizeOfFiles[currentFile] -= len(payload[3])
                 index += 1
                 begin = 0
+                write_to_file(f, payload[3])
         if (payload[0] == 7):
             length -= len(payload[3])
-            write_to_file(f, payload[3])
-        print('Length of Current File: ' +  str(sizeOfFiles[currentFile]))
-        print('Length Remaining: ' + str(length))
-        if (index > numberOfPieces):
-            index -= 1
-        print('Length of Piece Remaining: ' + str((lengthOfPiecesLeft[index])))
+            
         
+        if (index >= numberOfPieces):
+            index -= 1
+        #print('Length of Current File: ' +  str(sizeOfFiles[currentFile]))
+        print('Length Remaining: ' + str(length))
+        print('Length of Piece Remaining: ' + str((lengthOfPiecesLeft[index])))
+
     f.close()
     sock.close
 
@@ -376,16 +385,22 @@ def parse_message(messageLengthInt, sock, numberOfPieces):
             #block = bytearray(messageLengthInt - 9)
             block = ''
             sizeReceived = 0
+            currIndex = 1
+            #f = open('TEST.pdf', 'w')
             while sizeReceived < (messageLengthInt - 9):
                 segment = sock.recv(messageLengthInt - 9 - sizeReceived)
-                #block[begin:len(segment)] = segment
+                #print('SEGMENT ' + str(currIndex) + ': ' + segment)
+                #block[currIndex:len(segment)] = segment
                 block += segment
+                currIndex += 1
+                #f.write(segment)
                 sizeReceived += len(segment)
             
             print('Index: ' + str(index))
             print('Begin: ' + str(begin))
             print('Block Size: ' + str(len(block)))
             #print('BlockByte: ' + block)
+            #f.close()
             #print('BlockStr: ' + str(block))
             return [messageID, index, begin, block]
         elif (messageID == 8):          # CANCEL
