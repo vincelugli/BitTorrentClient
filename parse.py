@@ -22,15 +22,19 @@ options = {0 : 'choke',
            10 : 'keep-alive', }
 
 def client():
-    filename = 'E:\Downloads\BitTorrentClient\The Chris Gethard Show - Episode-.torrent'                            # USE THIS TO TEST BASIC TORRENT FUNCTIONALITY
-    #filename = 'E:\Downloads\BitTorrentClient\Anathema -- Vol18 [mininova].torrent'                # USE THIS TO TEST MULTIFILE TORRENT
+    #filename = 'E:\Downloads\BitTorrentClient\The Chris Gethard Show - Episode-.torrent'                            # USE THIS TO TEST BASIC TORRENT FUNCTIONALITY
+    filename = 'E:\Downloads\BitTorrentClient\Anathema -- Vol18 [mininova].torrent'                # USE THIS TO TEST MULTIFILE TORRENT
     #filename = 'E:\Downloads\BitTorrentClient\dsl-4.4.10.iso.torrent'                              # USE THIS TO TEST PEERS THAT DO NOT HAVE WHOLE FILE
     #filename = 'E:\Downloads\BitTorrentClient\debian-live-6.0.7-amd64-gnome-desktop.iso.torrent'   # USE THIS TO TEST LARGE FILE TORRENT WITH ENGRYPTION (I THINK)
     bencodeMetaInfo = get_torrent_info(filename)
     #print(bencodeMetaInfo)
     announceKey = get_announce(bencodeMetaInfo)
     #print(announceKey)
-    length = get_length(bencodeMetaInfo)
+    sizeOfFiles = get_length(bencodeMetaInfo)
+    length = sizeOfFiles[sizeOfFiles[0]+1]
+    isMultiFile = False
+    if (sizeOfFiles[0] > 1):
+        isMultiFile = True
     #print(length)
     infoDict = get_info(bencodeMetaInfo)
     #print(infoDict)
@@ -66,7 +70,7 @@ def client():
         else:
             lengthOfPiecesLeft.append(lengthLeft)
         lengthLeft -= lengthOfPiece
-    #print(lengthOfPiecesLeft)
+    print(lengthOfPiecesLeft)
 
     # Actual connections begin here.
 
@@ -115,16 +119,16 @@ def client():
     index = 0
     begin = 0
     sentSize = 0
-    f = open(infoDict['name'], 'w')# FOR MULTI FILE: infoDict['files'][0]['path'][0], 'w')
+    currentFile = 1;
+    f = open(infoDict['files'][0]['path'][currentFile-1], 'w')#infoDict['name'], 'w')# FOR MULTI FILE: infoDict['files'][0]['path'][0], 'w')
     
     # Message Requesting
     # TODO: change endianness from little to big
     
     while length > 0:
-        print('Length Remaining: ' + str(length))
-        if ((lengthOfPiecesLeft[index] - blockSize) > 0):
+        if ((lengthOfPiecesLeft[index] - blockSize) > 0 and (sizeOfFiles[currentFile] - blockSize) > 0):
             requestMessage = pack('>IBIII', 13, 6, index, begin, blockSize) 
-            print('Message Sent: ' + ':'.join(x.encode('hex') for x in requestMessage))
+            #print('Message Sent: ' + ':'.join(x.encode('hex') for x in requestMessage))
 
             sock.send(requestMessage)
             messageLengthStr = sock.recv(4)
@@ -133,12 +137,14 @@ def client():
             payload = parse_message(messageLengthInt, sock, numberOfPieces)
             if (payload[0] == 7):
                 sentSize = blockSize
+                lengthOfPiecesLeft[index] -= sentSize
+                sizeOfFiles[currentFile] -= sentSize
                 begin += sentSize
-        else:
-            print('In Else')
-            sentSize = lengthOfPiecesLeft[index]
+        elif (sizeOfFiles[currentFile] - blockSize <= 0):
+            print('End of one File!')
+            sentSize = sizeOfFiles[currentFile]
             requestMessage = pack('>IBIII', 13, 6, index, begin, sentSize) 
-            print(':'.join(x.encode('hex') for x in requestMessage))
+            #print('Message Sent: ' + ':'.join(x.encode('hex') for x in requestMessage))
 
             sock.send(requestMessage)
             messageLengthStr = sock.recv(4)
@@ -146,12 +152,36 @@ def client():
             
             payload = parse_message(messageLengthInt, sock, numberOfPieces)
             if (payload[0] == 7):
+                sentSize = blockSize
+                lengthOfPiecesLeft[index] -= sentSize
+                sizeOfFiles[currentFile] -= sentSize
+                begin += sentSize
+                currentFile += 1
+                f.close()
+                f = open(infoDict['files'][currentFile-1]['path'][0], 'w')
+        else:
+            sentSize = lengthOfPiecesLeft[index]
+            requestMessage = pack('>IBIII', 13, 6, index, begin, sentSize) 
+            #print(':'.join(x.encode('hex') for x in requestMessage))
+
+            sock.send(requestMessage)
+            messageLengthStr = sock.recv(4)
+            messageLengthInt = parse_message_length(messageLengthStr)
+            
+            payload = parse_message(messageLengthInt, sock, numberOfPieces)
+            if (payload[0] == 7):
+                sizeOfFiles[currentFile] -= sentSize
                 index += 1
                 begin = 0
-        length -= sentSize
         if (payload[0] == 7):
+            length -= sentSize
             write_to_file(f, payload[3])
-    
+        print('Length of Current File: ' +  str(sizeOfFiles[currentFile]))
+        print('Length Remaining: ' + str(length))
+        print('Length of Piece Remaining: ' + str((lengthOfPiecesLeft[index])))
+        print('Number of Pieces: ' + str(index+1) + '/' + str(numberOfPieces))
+        
+    f.close()
     sock.close
 
 def get_torrent_info(filename):
@@ -183,13 +213,17 @@ def get_length(metainfo):
     if ('files' in metainfo['info']):
         print('MULTIPLE FILES!')
         files = metainfo['info']['files']
+        numFiles = len(files)
         total = 0
+        sizeOfFiles = [numFiles]
         for filePart in files:
+            sizeOfFiles.append(filePart['length'])
             total += filePart['length']
-        return total        
+        sizeOfFiles.append(total)
+        return sizeOfFiles
     else:
         print('SINGLE FILE!')
-        return metainfo['info']['length']
+        return [1, metainfo['info']['length']]
 
 def get_number_of_pieces(infoDict):
     return len(infoDict['pieces']) / 20
@@ -310,7 +344,7 @@ def parse_message(messageLengthInt, sock, numberOfPieces):
             begin = unpack('>I', sock.recv(4))[0]
             block = ''
             sizeReceived = 0
-            while sizeReceived < (messageLengthInt -9):
+            while sizeReceived < (messageLengthInt - 9):
                 block += sock.recv(messageLengthInt - 9 - sizeReceived)
                 sizeReceived = len(block)
             
