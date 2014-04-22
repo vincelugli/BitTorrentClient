@@ -1,0 +1,216 @@
+HeaderSearch1_listMenu">
+		<option selected="selected" value="BOOKSTORE">Bookstore</option>
+		<option value="SITE">iUniverse site</option>
+
+	</select>
+                <input type="image" name="ctl00$MastHead11$HeaderSearch1$btnSearch" id="ctl00_MastHead11_HeaderSearch1_btnSearch" class="searchButton vert-align" Def="" src="../images/btn_search.png" style="border-width:0px;" />
+       	    </div>
+
+</div>
+		</div>
+		<div style="clear:both;"></div>
+<!-- end of cart and search -->			
+<!-- begin top navigation -->	
+	
+		<div id="topnav" class="clearfix">
+			<ul>
+				<li><a class="whyIuniverse" href="/Why-IUniverse.aspx">Why iUniverse?</a></li>
+				<li><a class="packages" href="/Packages/">Packages</a></li>
+				<li><a class="services" href="/Servicestore/">Services</a></li>
+				<li><a class="expertadvice" href="/Expert-Advice.aspx">Expert Advice</a></li>
+				<li><a class="community" href="/Community.aspx">Community</a></li>
+				<li class="myuniverse"><a href="/MyUniverse/">MyUniverse</a></li>
+				<li class="bookstore"><a href="/Bookstore/">Bookstore</a></li>
+			</ul>
+		</div>
+				
+
+<!-- end of top navigation -->
+	</div>
+	<div style="clear:both;"></div>
+	
+	
+
+	
+
+
+            
+
+<div id="subNav" class="rndcnr-topleft clearfix">
+    <span class="rndcnr-topright" style="margin-right:-1px;"></span> 
+    <div id="ctl00_MastHeadSubNav1_ContentBlock1">
+	<ul class="subNavigation"><li class="active"><a href="/MyUniverse/MyDashboard.aspx">Dashboard</a></li><li><a href="/MyUniverse/BookStatus.aspx">Book Status</a></li><li><a href="/MyUniverse/PurchaseHistory.aspx">Purchases</a></li><li><a href="/MyUniverse/SalesRoyaltiesOverview.aspx">Sales and Royalties</a></li><li><a href="/MyUniverse/AccountInformation.aspx">My Account</a></li><li><a href="/MyUniverse/NewsEvents.aspx">My News &amp; Events</a></li></ul>
+</div>
+    <span class="rndcnr-btmleft"></span>
+    <span class="rndcnr-btmright" style="margin-right:-1px;"></span>
+</div>
+
+            <div id="content" class="clearfix">
+                
+    <div class="col-903">       
+        <div id="ctl00_ContentPlaceHolder2_pnlApprovalForm">
+	
+            <h1></h1>
+            <div id="ctl00_ContentPlaceHolder2_ContentBlock1">
+		
+	</div><br />
+            
+
+<table cellpadding="0" cellspacing="0" border="0">
+<tr>
+<td>
+<span id="ctl00_ContentPlaceHolder2_ApprovalProcess1_lblErrorMessage"></span>
+</td>
+</tr>
+<tr>
+<td>
+<div id="ctl00_ContentPlaceHolder2_ApprovalProcess1_MainContentBlock">
+		
+	</div>
+</td>
+</tr>
+<tr>
+<td>
+     <div style="padding-top: 20px">
+                <table>
+                    <tr>
+                        <td>
+                            <a style="border-bottom-style:none;" href="http://www.adobe.com/products/acrobat/readstep2.html" target="_blank"><img src="../Images/pdf_icon1.gif" style="border:none" /></a>
+                        </td>
+                        <td>
+                            <a id="ctl00_ContentPlaceHolder2_ApprovalProcess1_lnkApprovalFile" href="javascript:__doPostBack('ctl00$ContentPlaceHolder2$ApprovalProcess1$lnkApprovalFile','')">Interior Approval</a>
+                        </td>  
+                   </tr> 
+                 </table>
+     </div>
+</td>
+</tr> 
+<tr style="height:40px">
+<td>
+</td>
+</tr> 
+</table>
+<div>
+    <input type="image" name="ctl00$ContentPlaceHolder2$ApprovalProcess1$imgApproved" id="ctl00_ContentPlaceHolder2_ApprovalProcess1_imgApproved" src="../Images/btn_approved.gif" style="border-width:0px;" />&nbsp;&nbsp;&nbsp;&nbsp;
+    <input type="image" name="ctl00$ContentPlaceHolder2$ApprovalProcess1$imgNotApproved" id="ctl00_ContentPlaceHolder2_ApprovalProcess1_imgNotApproved" src="../Images/btn_notapproved.gif" style="border-width:0px;" />
+</div>
+
+        
+</div>
+    </div>
+
+            </div>
+        
+<div>
+
+	<input type="hidden" name="__VIEWSTATEENCRYPTED" id="__VIEWSTATEENCRYPTED" value="" />
+	<input type="hidden" name="__EVENTVALIDATION" id="__EVENTVALIDATION" value="Fd4ewAnYfzxjQXnWB4tG3HRpX4EcGvlRlTgrf27aPVe9vAl9/FiBW471E/WnepSeSbdfaxSYtK6aTT/cEV31Dw==" />
+</div>
+
+<script type="text/javascript">
+//<![CDATA[
+Sys.Application.initialize();
+//]]>
+</script>
+</form>
+        <div class="push"></div>
+    </div>
+    <div id="footer">
+        
+
+	<div id="footerContainer">
+		<div id="btmMenu">
+			<ul>
+				<li><a href="/AboutUs/">About Us</a></li>
+				<li><a href="/FAQ.aspx">FAQ</a></li>
+				<li><a href="https://secure.advanceu.com/authorhouse/employment_opportunities.aspx?AspxAutoDetectCookieSupport=1" target="_blank" >Careers</a></li>
+				<li><a href="/PrivacyPolicy.aspx">Privacy Policy</a></li>
+				<li><a href="/sitemap.aspx">Site Map</a></li>
+				<li style="margin-right:0;"><a href="/ContactUs/">Contact Us</a></li>
+			</ul>
+			<p align="right">&copy 2010 iUniverse.com all rights reserved</p>
+		</div>
+
+<!--		
+		<a href="#"><img src="/images/btn_livechat.png"/></a>
+        <a id="_lpChatBtn" href='http://server.iad.liveperson.net/hc/9015422/?cmd=file&file=visitorWantsToChat&site=9015422&byhref=1&SESSIONVAR!skill=Authorhouse%20-%20sales&imageUrl=http://www.wordclay.com/iUniversechatimages' target='chat9015422'  onClick="lpButtonCTTUrl = 'http://server.iad.liveperson.net/hc/9015422/?cmd=file&file=visitorWantsToChat&site=9015422&SESSIONVAR!skill=Authorhouse%20-%20sales&imageUrl=http://www.wordclay.com/iUniversechatimages&referrer='+escape(document.location); lpButtonCTTUrl = (typeof(lpAppendVisitorCookies) != 'undefined' ? lpAppendVisitorCookies(lpButtonCTTUrl) : lpButtonCTTUrl); window.open(lpButtonCTTUrl,'chat9015422','width=475,height=400,resizable=yes');return false;" ><img src='http://server.iad.liveperson.net/hc/9015422/?cmd=repstate&site=9015422&channel=web&&ver=1&imageUrl=http://www.wordclay.com/iUniversechatimages&skill=Authorhouse%20-%20sales' name='hcIcon' border="0" /></a>
+-->
+
+        <a href="/ContactUs/PubGuideRequest.aspx"><img src="/images/btn_pubguide.png" class="btnRow"/></a>
+        <a href="/chaptersindigoand_coles.aspx"><img src="/images/btn_canadianauthors.jpg" alt="Canadian Authors" class="btnRow" /></a>
+        <a href="mailto:ehopkins@authorsolutions.com?subject=Posting"><img src="/images/btn_post.jpg" alt="Post Comment" /></a>
+        
+		
+<!--
+		 <a href="/ContactUs/NewsletterRequest.aspx"><img src="/images/btn_newsletter.png"/></a>
+-->
+		<img class="phoneNumber" src="/images/call1800authors.png"/>
+		
+		<div class="clearfix" id="footerPublishingLinks">
+		    <ul class="publishingLinks">
+		        <li><a href="/guidetopublishing_publish+for+youth.aspx">Publish a Book for Younger Readers</a></li>
+		        <li><a href="/guidetopublishing_Publish+a+mystery+book.aspx">Your Guide to Publishing Mystery</a></li>
+		    </ul>
+		    <ul class="publishingLinks">
+		        <li><a href="/guidetopublishing_Publish+your+memoir.aspx">Get Your Memoir Published</a></li>
+		        <li><a href="/guidetopublishing_Publish+my+travel+book.aspx">Have a Travel Book – Get it Published</a></li>
+		    </ul>
+		    <ul class="publishingLinks">
+		        <li><a href="/guidetopublishing_Christian+book+publishing.aspx">Publish a Book of Christian Values</a></li>
+		        <li><a href="/guidetopublishing_publish+my+poetry+book.aspx">Claim Your Poetry Publishing Guide</a></li>
+		    </ul>
+		</div>
+		
+		
+	</div>
+
+<!-- BEGIN Invitation Positioning  -->
+<script language="javascript" type="text/javascript">
+    var lpPosY = 100;
+    var lpPosX = 100;
+</script>
+<!-- END Invitation Positioning  -->
+
+<!-- BEGIN Monitor Tracking Variables  -->
+<script type="text/javascript" language="JavaScript1.2">
+    if (typeof(tagVars) == "undefined") tagVars = "";
+    tagVars += "&SESSIONVAR!skill=Authorhouse%20-%20sales";
+</script>
+<!-- End Monitor Tracking Variables  -->
+
+
+<!-- BEGIN HumanTag Monitor. DO NOT MOVE! MUST BE PLACED JUST BEFORE THE /BODY TAG -->
+<!--
+<script type="text/javascript" language="javascript" src='http://server.iad.liveperson.net/hc/9015422/x.js?cmd=file&file=chatScript3&site=9015422&&imageUrl=http://www.wordclay.com/iUniversechatimages'></script>
+-->
+<!-- END HumanTag Monitor. DO NOT MOVE! MUST BE PLACED JUST BEFORE THE /BODY TAG -->
+
+    </div>
+    <!-- Google Code for Visitors Remarketing List -->
+<script type="text/javascript">
+<!--
+var google_conversion_id = 1072658588;
+var google_conversion_language = "en";
+var google_conversion_format = "3";
+var google_conversion_color = "666666";
+var google_conversion_label = "m45ACNKB0QEQnPG9_wM";
+var google_conversion_value = 0;
+//-->
+</script>
+<script type="text/javascript" 
+src="http://www.googleadservices.com/pagead/conversion.js">
+</script>
+<noscript>
+<div style="display:inline;">
+<img height="1" width="1" style="border-style:none;" alt="" 
+src="http://www.googleadservices.com/pagead/conversion/1072658588/?label=m45ACNKB0QEQnPG9_wM&amp;guid=ON&amp;script=0"/>
+</div>
+</noscript>
+
+</body>
+</html>
+This release was distributed using Mininova Content Distribution (CD).
+Check http://www.mininova.org/distribution for more information.
+
+By using Mininova CD, producers can easily share their content.
+Mininova takes care of the distribution process, e.g. by providing the required bandwidth.

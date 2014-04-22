@@ -120,10 +120,9 @@ def client():
     begin = 0
     sentSize = 0
     currentFile = 1;
-    f = open(infoDict['files'][0]['path'][currentFile-1], 'w')#infoDict['name'], 'w')# FOR MULTI FILE: infoDict['files'][0]['path'][0], 'w')
+    f = open(infoDict['files'][currentFile-1]['path'][0], 'w')#infoDict['name'], 'w')# FOR MULTI FILE: infoDict['files'][0]['path'][0], 'w')
     
     # Message Requesting
-    # TODO: change endianness from little to big
     
     while length > 0:
         if ((lengthOfPiecesLeft[index] - blockSize) > 0 and (sizeOfFiles[currentFile] - blockSize) > 0):
@@ -137,11 +136,11 @@ def client():
             payload = parse_message(messageLengthInt, sock, numberOfPieces)
             if (payload[0] == 7):
                 sentSize = blockSize
-                lengthOfPiecesLeft[index] -= sentSize
-                sizeOfFiles[currentFile] -= sentSize
+                lengthOfPiecesLeft[index] -= len(payload[3])
+                sizeOfFiles[currentFile] -= len(payload[3])
                 begin += sentSize
+            print('Number of Pieces: ' + str(index+1) + '/' + str(numberOfPieces))
         elif (sizeOfFiles[currentFile] - blockSize <= 0):
-            print('End of one File!')
             sentSize = sizeOfFiles[currentFile]
             requestMessage = pack('>IBIII', 13, 6, index, begin, sentSize) 
             #print('Message Sent: ' + ':'.join(x.encode('hex') for x in requestMessage))
@@ -151,15 +150,19 @@ def client():
             messageLengthInt = parse_message_length(messageLengthStr)
             
             payload = parse_message(messageLengthInt, sock, numberOfPieces)
+            print('End of one File!')
             if (payload[0] == 7):
-                sentSize = blockSize
-                lengthOfPiecesLeft[index] -= sentSize
-                sizeOfFiles[currentFile] -= sentSize
+                lengthOfPiecesLeft[index] -= len(payload[3])
+                sizeOfFiles[currentFile] -= len(payload[3])
                 begin += sentSize
                 currentFile += 1
-                f.close()
-                f = open(infoDict['files'][currentFile-1]['path'][0], 'w')
+                
+                if (len(infoDict['files']) != currentFile-1):
+                    f.close()
+                    f = open(infoDict['files'][currentFile-1]['path'][0], 'w')
+            print('Number of Pieces: ' + str(index+1) + '/' + str(numberOfPieces))
         else:
+            print('ELSE!')
             sentSize = lengthOfPiecesLeft[index]
             requestMessage = pack('>IBIII', 13, 6, index, begin, sentSize) 
             #print(':'.join(x.encode('hex') for x in requestMessage))
@@ -170,16 +173,16 @@ def client():
             
             payload = parse_message(messageLengthInt, sock, numberOfPieces)
             if (payload[0] == 7):
-                sizeOfFiles[currentFile] -= sentSize
+                print('Number of Pieces: ' + str(index+1) + '/' + str(numberOfPieces))
+                sizeOfFiles[currentFile] -= len(payload[3])
                 index += 1
                 begin = 0
         if (payload[0] == 7):
-            length -= sentSize
+            length -= len(payload[3])
             write_to_file(f, payload[3])
         print('Length of Current File: ' +  str(sizeOfFiles[currentFile]))
         print('Length Remaining: ' + str(length))
         print('Length of Piece Remaining: ' + str((lengthOfPiecesLeft[index])))
-        print('Number of Pieces: ' + str(index+1) + '/' + str(numberOfPieces))
         
     f.close()
     sock.close
@@ -342,15 +345,20 @@ def parse_message(messageLengthInt, sock, numberOfPieces):
         elif (messageID == 7):          # PIECE
             index = unpack('>I', sock.recv(4))[0]   # should be equal to (messageLengthInt - 1) / 3
             begin = unpack('>I', sock.recv(4))[0]
+            #block = bytearray(messageLengthInt - 9)
             block = ''
             sizeReceived = 0
             while sizeReceived < (messageLengthInt - 9):
-                block += sock.recv(messageLengthInt - 9 - sizeReceived)
-                sizeReceived = len(block)
+                segment = sock.recv(messageLengthInt - 9 - sizeReceived)
+                #block[begin:len(segment)] = segment
+                block += segment
+                sizeReceived += len(segment)
             
             print('Index: ' + str(index))
             print('Begin: ' + str(begin))
-            print('Block: ' + str(len(block)))
+            print('Block Size: ' + str(len(block)))
+            #print('BlockByte: ' + block)
+            #print('BlockStr: ' + str(block))
             return [messageID, index, begin, block]
         elif (messageID == 8):          # CANCEL
             index = unpack('>I', sock.recv(4))[0]   # should be equal to (messageLengthInt - 1) / 3
