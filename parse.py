@@ -32,6 +32,7 @@ def client():
     #print(announceKey)
     sizeOfFiles = get_length(bencodeMetaInfo)
     length = sizeOfFiles[sizeOfFiles[0]+1]
+    print(sizeOfFiles)
     isMultiFile = False
     if (sizeOfFiles[0] > 1):
         isMultiFile = True
@@ -140,7 +141,7 @@ def client():
                 sizeOfFiles[currentFile] -= len(payload[3])
                 begin += sentSize
             print('Number of Pieces: ' + str(index+1) + '/' + str(numberOfPieces))
-        elif (sizeOfFiles[currentFile] - blockSize <= 0):
+        elif (lengthOfPiecesLeft[index] - blockSize > 0 and sizeOfFiles[currentFile] - blockSize <= 0):
             sentSize = sizeOfFiles[currentFile]
             requestMessage = pack('>IBIII', 13, 6, index, begin, sentSize) 
             #print('Message Sent: ' + ':'.join(x.encode('hex') for x in requestMessage))
@@ -156,6 +157,31 @@ def client():
                 sizeOfFiles[currentFile] -= len(payload[3])
                 begin += sentSize
                 currentFile += 1
+                
+                if (len(infoDict['files']) != currentFile-1):
+                    f.close()
+                    f = open(infoDict['files'][currentFile-1]['path'][0], 'w')
+            print('Number of Pieces: ' + str(index+1) + '/' + str(numberOfPieces))
+        elif (lengthOfPiecesLeft[index] - blockSize <= 0 and sizeOfFiles[currentFile] - blockSize <= 0):
+            sentSize = min(lengthOfPiecesLeft[index], sizeOfFiles[currentFile])
+            requestMessage = pack('>IBIII', 13, 6, index, begin, sentSize) 
+            #print('Message Sent: ' + ':'.join(x.encode('hex') for x in requestMessage))
+
+            sock.send(requestMessage)
+            messageLengthStr = sock.recv(4)
+            messageLengthInt = parse_message_length(messageLengthStr)
+            
+            payload = parse_message(messageLengthInt, sock, numberOfPieces)
+            print('End of one File!')
+            if (payload[0] == 7):
+                lengthOfPiecesLeft[index] -= len(payload[3])
+                sizeOfFiles[currentFile] -= len(payload[3])
+                if (sizeOfFiles[currentFile] <= 0):
+                    begin += sentSize
+                    currentFile += 1
+                if (lengthOfPiecesLeft[index] <= 0):
+                    index += 1
+                    being = 0
                 
                 if (len(infoDict['files']) != currentFile-1):
                     f.close()
@@ -182,6 +208,8 @@ def client():
             write_to_file(f, payload[3])
         print('Length of Current File: ' +  str(sizeOfFiles[currentFile]))
         print('Length Remaining: ' + str(length))
+        if (index > numberOfPieces):
+            index -= 1
         print('Length of Piece Remaining: ' + str((lengthOfPiecesLeft[index])))
         
     f.close()
