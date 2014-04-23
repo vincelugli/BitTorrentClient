@@ -129,6 +129,8 @@ def client():
     currentFile = 1
     sizeDownloaded = 0
     piece = ''
+    fileLocInPiece = [0]
+    numFilesInPiece = 0
     if (isMultiFile):
         f = open(infoDict['files'][currentFile-1]['path'][0], 'wb')
         f.close()
@@ -170,75 +172,118 @@ def client():
                 
 
             print('Number of Pieces: ' + str(index+1) + '/' + str(numberOfPieces))
-            
-        elif (lengthOfPiecesLeft[index] - blockSize > 0 and sizeOfFiles[currentFile] - blockSize <= 0):
-            print('FIRST ELSEIF!')
-            sentSize = sizeOfFiles[currentFile]
-            requestMessage = pack('>IBIII', 13, 6, index, begin, sentSize) 
-            #print('Message Sent: ' + ':'.join(x.encode('hex') for x in requestMessage)) 
 
-            sock.send(requestMessage)
-            messageLengthStr = sock.recv(4)
-            messageLengthInt = parse_message_length(messageLengthStr)
-           
-            payload = parse_message(messageLengthInt, sock, numberOfPieces)
-            print('End of one File!')
-            if (payload[0] == 7):
-                lengthOfPiecesLeft[index] -= len(payload[3])
-                length -= len(payload[3])
-                sizeOfFiles[currentFile] -= len(payload[3])
-                print(sizeOfFiles[currentFile])
-                begin += sentSize
-               
-                if (isMultiFile):
-                    f = open(infoDict['files'][currentFile-1]['path'][0], 'ab')
-                else:
-                    f = open(infoDict['name'], 'ab')
-
-                write_to_file(f, str(payload[3]))
-                f.close()
-                currentFile += 1
-               
-                if (len(infoDict['files']) != currentFile and sizeOfFiles[currentFile] <= 0):
-                    f.close()
-                    f = open(infoDict['files'][currentFile-1]['path'][0], 'wb')
-            print('Number of Pieces: ' + str(index+1) + '/' + str(numberOfPieces))
-        elif (lengthOfPiecesLeft[index] - blockSize <= 0 and sizeOfFiles[currentFile] - blockSize <= 0):
-            print('SECOND ELSEIF!')
-            sentSize = min(lengthOfPiecesLeft[index], sizeOfFiles[currentFile])
-            requestMessage = pack('>IBIII', 13, 6, index, begin, sentSize) 
-            #print('Message Sent: ' + ':'.join(x.encode('hex') for x in requestMessage)) 
-
-            sock.send(requestMessage)
-            messageLengthStr = sock.recv(4)
-            messageLengthInt = parse_message_length(messageLengthStr)
-            
-            payload = parse_message(messageLengthInt, sock, numberOfPieces)
-            print('End of one File!')
-            if (payload[0] == 7):
-                lengthOfPiecesLeft[index] -= len(payload[3])
-                length -= len(payload[3])
-                sizeOfFiles[currentFile] -= len(payload[3])
-                print(sizeOfFiles[currentFile])
-                if (sizeOfFiles[currentFile] <= 0):
-                    begin += sentSize
-                    if (isMultiFile):
-                        f = open(infoDict['files'][currentFile-1]['path'][0], 'ab')
-                    else:
-                        f = open(infoDict['name'], 'ab')
-
-                    write_to_file(f, str(payload[3]))
-                    f.close()
-                    currentFile += 1
-                    if (len(infoDict['files']) != currentFile-1):
-                        f = open(infoDict['files'][currentFile-1]['path'][0], 'wb')
-                        f.close()
-                if (lengthOfPiecesLeft[index] <= 0):
-                    index += 1
-                    begin = 0
-                    
-            print('Number of Pieces: ' + str(index+1) + '/' + str(numberOfPieces))
+##        # piece hasn't finished, but file has.
+##        elif (lengthOfPiecesLeft[index] - blockSize > 0 and sizeOfFiles[currentFile] - blockSize <= 0):
+##            print('FIRST ELSEIF!')
+##            sentSize = sizeOfFiles[currentFile]
+##            requestMessage = pack('>IBIII', 13, 6, index, begin, sentSize) 
+##            #print('Message Sent: ' + ':'.join(x.encode('hex') for x in requestMessage)) 
+##
+##            sock.send(requestMessage)
+##            messageLengthStr = sock.recv(4)
+##            messageLengthInt = parse_message_length(messageLengthStr)
+##           
+##            payload = parse_message(messageLengthInt, sock, numberOfPieces)
+##            print('End of one File!')
+##            if (payload[0] == 7):
+##                lengthOfPiecesLeft[index] -= len(payload[3])
+##                #length -= len(payload[3])
+##                sizeOfFiles[currentFile] -= len(payload[3])
+##                begin += sentSize
+##               
+##                if (isMultiFile):
+##                    f = open(infoDict['files'][currentFile-1]['path'][0], 'ab')
+##                else:
+##                    f = open(infoDict['name'], 'ab')
+##
+##                piece += str(payload[3])
+##                #write_to_file(f, str(payload[3]))
+##
+##                # This will hold where the file ends. Take piece from index before to current index to get remainder of file.
+##                fileLocInPiece.append(begin)
+##                f.close()
+##                currentFile += 1
+##                numFilesInPiece += 1
+##               
+##                if (len(infoDict['files']) != currentFile and sizeOfFiles[currentFile] <= 0):
+##                    f.close()
+##                    f = open(infoDict['files'][currentFile-1]['path'][0], 'wb')
+##            print('Number of Pieces: ' + str(index+1) + '/' + str(numberOfPieces))
+##        # piece and file are finished (not sure which one is smaller).
+##        elif (lengthOfPiecesLeft[index] - blockSize <= 0 and sizeOfFiles[currentFile] - blockSize <= 0):
+##            print('SECOND ELSEIF!')
+##            sentSize = min(lengthOfPiecesLeft[index], sizeOfFiles[currentFile])
+##            requestMessage = pack('>IBIII', 13, 6, index, begin, sentSize) 
+##            #print('Message Sent: ' + ':'.join(x.encode('hex') for x in requestMessage)) 
+##
+##            sock.send(requestMessage)
+##            messageLengthStr = sock.recv(4)
+##            messageLengthInt = parse_message_length(messageLengthStr)
+##            
+##            payload = parse_message(messageLengthInt, sock, numberOfPieces)
+##            print('End of one File!')
+##            if (payload[0] == 7):
+##                lengthOfPiecesLeft[index] -= len(payload[3])
+##                #length -= len(payload[3])
+##                sizeOfFiles[currentFile] -= len(payload[3])
+##                
+##                # current file is finished
+##                if (sizeOfFiles[currentFile] <= 0):
+##                    begin += sentSize
+##                    if (isMultiFile):
+##                        f = open(infoDict['files'][currentFile-1]['path'][0], 'ab')
+##                    else:
+##                        f = open(infoDict['name'], 'ab')
+##
+##                    pieces += str(payload[3])
+##                    #write_to_file(f, str(payload[3]))
+##
+##                    # This will hold where the file ends. Take piece from index before to current index to get remainder of file.
+##                    fileLocInPiece.append(begin)
+##                    f.close()
+##                    currentFile += 1
+##                    numFilesInPiece += 1
+##                    if (len(infoDict['files']) != currentFile-1):
+##                        f = open(infoDict['files'][currentFile-1]['path'][0], 'wb')
+##                        f.close()
+##
+##                # Current piece is also finished.
+##                if (lengthOfPiecesLeft[index] <= 0):
+##                    piece += str(payload[3])
+##                    verification = verify_piece(piece, infoDict, index)
+##
+##                    if (verification):
+##                        # Write piece to file
+##                        if (isMultiFile):
+##                            for x in range (1, numFilesInPiece):
+##                                f.close()
+##                                f = open(infoDict['files'][currentFile-1]['path'][0], 'ab')
+##                                filePiece = piece[fileLocInPiece[numFilesInPiece-1] : fileLocInPiece[numFilesInPiece]]
+##                                write_to_file(f, filePiece)
+##                            fileLocInPiece = [0]
+##                            numFilesInPiece = 0
+##                        else:
+##                            write_to_file(f, piece)
+##                            
+##                        sizeDownloaded += len(piece)
+##                        length -= len(piece)
+##                        
+##                        # move to the next piece
+##                        index += 1
+##                        # reset to the start of the piece.
+##                        begin = 0
+##                        piece = ''
+##                    else:
+##                        lengthOfPiecesLeft = lengthOfPiecesLeftCopy[index]
+##                        sizeOfFiles[currentFile-1] = sizeOfFilesCopy[currentFile-1]
+##                        currentFile -= 1
+##                        # Discard piece, start over
+##                    f.close()
+##                    
+##            print('Number of Pieces: ' + str(index+1) + '/' + str(numberOfPieces))
         else:
+            print('ELSE!!')
             # Get a block of size equal to the rest of the piece.
             sentSize = lengthOfPiecesLeft[index]
             requestMessage = pack('>IBIII', 13, 6, index, begin, sentSize) 
@@ -255,8 +300,7 @@ def client():
                 print('Number of Pieces: ' + str(index+1) + '/' + str(numberOfPieces))
                 #sizeOfFiles[currentFile] -= len(payload[3])
                 
-                # reset to the start of the piece.
-                begin = 0
+                
                 if (isMultiFile):
                     f = open(infoDict['files'][currentFile-1]['path'][0], 'ab')
                 else:
@@ -274,11 +318,13 @@ def client():
                     
                     # move to the next piece
                     index += 1
+                    # reset to the start of the piece.
+                    begin = 0
+                    piece = ''
                 else:
                     lengthOfPiecesLeft = lengthOfPiecesLeftCopy[index]
                     # Discard piece, start over
                 f.close()
-                piece = ''
                 
             
         
