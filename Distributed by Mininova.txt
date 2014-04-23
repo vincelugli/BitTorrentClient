@@ -1,5 +1,0 @@
-This release was distributed using Mininova Content Distribution (CD).
-Check http://www.mininova.org/distribution for more information.
-
-By using Mininova CD, producers can easily share their content.
-Mininova takes care of the distribution process, e.g. by providing the required bandwidth.
