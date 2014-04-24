@@ -1,11 +1,13 @@
 from bencode import *
 from struct import *
+#from socket import *
 import hashlib
-import requests
 import socket
+import requests
 import os
 import sys
 import msvcrt
+import threading
 
 keepAlive = True
 isChocked = False
@@ -27,10 +29,16 @@ options = {0 : 'choke',
            10 : 'keep-alive', }
 
 
+
+#class Client(threading.Thread):
+##def __init__(self):
+##    threading.Thread.__init__(self)
+##def run(self):
 def client():
+    running = 1
     keyPressed = False
     #filename = 'C:\Users\Xialin\Documents\CS 3251\Let-it-go-frozen.gif.torrent'                           # USE THIS TO TEST BASIC TORRENT FUNCTIONALITY
-    filename = 'C:\Users\XIalin\Documents\CS 3251\BitTorrentClient\Anathema -- Vol18 [mininova].torrent'                # USE THIS TO TEST MULTIFILE TORRENT
+    filename = 'E:\Downloads\BitTorrentClient\Anathema -- Vol18 [mininova].torrent'                # USE THIS TO TEST MULTIFILE TORRENT
     #filename = 'E:\Downloads\BitTorrentClient\dsl-4.4.10.iso.torrent'                              # USE THIS TO TEST PEERS THAT DO NOT HAVE WHOLE FILE
     #filename = 'E:\Downloads\BitTorrentClient\debian-live-6.0.7-amd64-gnome-desktop.iso.torrent'   # USE THIS TO TEST LARGE FILE TORRENT WITH ENGRYPTION (I THINK)
     bencodeMetaInfo = get_torrent_info(filename)
@@ -56,11 +64,10 @@ def client():
     encodedInfo = bencode_info(infoDict)
     #print(encodedInfo)
     sha1HashedInfo = hashlib.sha1(encodedInfo).digest()
+    #print(sha1HashedInfo)
     peerID = 'vincentlugli1.0sixty'
     announceUrl = announceKey + '?info_hash=' + sha1HashedInfo + '&peer_id=' + peerID + '&port=5100&uploaded=0&downloaded=0&left=' + str(length) + '&compact=1'
     #print(announceUrl)
-
-
     announceResponse = requests.get(announceUrl)
     #print(announceResponse.status_code)
     content = bdecode(announceResponse.content)
@@ -299,6 +306,7 @@ def client():
     print('Total block size: ' + str(blockTotalSize))
     f.close()
     sock.close
+    running = 0
 
 def get_torrent_info(filename):
     metainfo_file = open(str(filename), 'rb')
@@ -511,4 +519,33 @@ def verify_piece(piece, infoDict, currentPiece):
     else:
         return False
 
+def listen_for_new_peer():
+    print('Listening for peer!')
+    filename = 'E:\Downloads\BitTorrentClient\Anathema -- Vol18 [mininova].torrent'                # USE THIS TO TEST MULTIFILE TORRENT
+    bencodeMetaInfo = get_torrent_info(filename)
+    infoDict = get_info(bencodeMetaInfo)
+    encodedInfo = bencode_info(infoDict)
+    sha1HashedInfo = hashlib.sha1(encodedInfo).digest()
+    
+    host = '128.61.89.77' 
+    port = 57894 
+    s = socket() 
+    s.bind((host,port)) 
+    s.listen(1)
+    handshakeMessage = pack('>B19s8s20s20s', 19, 'BitTorrent protocol', '', sha1HashedInfo, 'iamlisteningtoyou!!')
+    print(handshakeMessage)
+    notFound = True
+    while notFound: 
+        client, address = s.accept() 
+        data = client.recv(4096)
+        print(data)
+        if (data[28:48] == sha1HashedInfo):
+            print(data[28:48])
+            print(sha1HashedInfo)
+            print('yay! I heard you!')
+            notFound = False
+                  
+        client.close()
+
+#listen_for_new_peer()
 client()
