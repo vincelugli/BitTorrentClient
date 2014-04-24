@@ -4,7 +4,6 @@ import hashlib
 import requests
 import socket
 import os
-import sys
 
 keepAlive = True
 isChocked = False
@@ -26,8 +25,7 @@ options = {0 : 'choke',
 
 def client():
     #filename = 'C:\Users\Xialin\Documents\CS 3251\Let-it-go-frozen.gif.torrent'                           # USE THIS TO TEST BASIC TORRENT FUNCTIONALITY
-    filename = sys.argv#'E:\Downloads\BitTorrentClient\Anathema -- Vol18 [mininova].torrent'                # USE THIS TO TEST MULTIFILE TORRENT
-    print(filename[0])
+    filename = 'E:\Downloads\BitTorrentClient\Anathema -- Vol18 [mininova].torrent'                # USE THIS TO TEST MULTIFILE TORRENT
     #filename = 'E:\Downloads\BitTorrentClient\Independence50.torrent'
     #filename = 'E:\Downloads\BitTorrentClient\debian-live-6.0.7-amd64-gnome-desktop.iso.torrent'  
     bencodeMetaInfo = get_torrent_info(filename)
@@ -35,7 +33,6 @@ def client():
     announceKey = get_announce(bencodeMetaInfo)
     #print(announceKey)
     sizeOfFiles = get_length(bencodeMetaInfo)
-    sizeOfFilesCopy = sizeOfFiles
     #print(sizeOfFiles)
     isMultiFile = False
     if (sizeOfFiles[0] > 1):
@@ -80,7 +77,6 @@ def client():
             lengthOfPiecesLeft.append(lengthLeft)
         lengthLeft -= lengthOfPiece
     #print(lengthOfPiecesLeft)
-    lengthOfPieceCopy = lengthOfPiecesLeft
 
     # Actual connections begin here.
 
@@ -90,8 +86,8 @@ def client():
     #print(handshakeMessage)
 
     sock = socket.socket()
-    host = peerIPs[1]
-    port = peerPorts[1]
+    host = peerIPs[2]
+    port = peerPorts[2]
     
     sock.connect((host, port))
     sock.send(handshakeMessage)
@@ -132,10 +128,7 @@ def client():
     currentFile = 1
     sizeDownloaded = 0
     piece = ''
-    # fileOffset is where in the piece the file ends.
-    fileOffset = [0]
-    # numFilesInPiece is the number of end of files included in a piece
-    numFilesInPiece = 0
+    fileOffset = []
     if (isMultiFile):
         f = open(infoDict['files'][currentFile-1]['path'][0], 'wb')
         f.close()
@@ -147,7 +140,7 @@ def client():
     # Message Requesting
     
     while length > 0:
-        if ((lengthOfPiecesLeft[index] - blockSize) > 0):
+        if ((lengthOfPiecesLeft[index] - blockSize) > 0 and (sizeOfFiles[currentFile] - blockSize) > 0):
             # Get piece of size 16384
             requestMessage = pack('>IBIII', 13, 6, index, begin, blockSize) 
             #print('Message Sent: ' + ':'.join(x.encode('hex') for x in requestMessage))
@@ -163,13 +156,96 @@ def client():
                 sentSize = blockSize
                 lengthOfPiecesLeft[index] -= len(payload[3])
                 length -= len(payload[3])
+                
+                if (isMultiFile):
+                    sizeOfFiles[currentFile] -= len(payload[3])
                 begin += sentSize
                 sizeDownloaded += len(payload[3])
-                f = open(infoDict['name'], 'ab')
+                if (isMultiFile):
+                    f = open(infoDict['files'][currentFile-1]['path'][0], 'ab')
+                else:
+                    f = open(infoDict['name'], 'ab')
 
                 piece += str(payload[3])
                 #write_to_file(f, str(payload[3]))
                 #f.close()
+                
+                #print(os.path.getsize('C:\Users\Xialin\Documents\CS 3251\BitTorrentClient\\' + infoDict['files'][currentFile-1]['path'][0]))
+            print('Number of Pieces: ' + str(index+1) + '/' + str(numberOfPieces))
+            
+        elif (lengthOfPiecesLeft[index] - blockSize > 0 and sizeOfFiles[currentFile] - blockSize <= 0):
+            print('FIRST ELSEIF!')
+            sentSize = sizeOfFiles[currentFile]
+            requestMessage = pack('>IBIII', 13, 6, index, begin, sentSize) 
+            #print('Message Sent: ' + ':'.join(x.encode('hex') for x in requestMessage)) 
+
+            sock.send(requestMessage)
+            messageLengthStr = sock.recv(4)
+            messageLengthInt = parse_message_length(messageLengthStr)
+           
+            payload = parse_message(messageLengthInt, sock, numberOfPieces)
+            print('End of one File!')
+            if (payload[0] == 7):
+                lengthOfPiecesLeft[index] -= len(payload[3])
+                length -= len(payload[3])
+                if (isMultiFile):
+                    sizeOfFiles[currentFile] -= len(payload[3])
+                print(sizeOfFiles[currentFile])
+                begin += sentSize
+               
+                if (isMultiFile):
+                    f = open(infoDict['files'][currentFile-1]['path'][0], 'ab')
+                else:
+                    f = open(infoDict['name'], 'ab')
+
+                #piece += str(payload[3])
+                write_to_file(f, str(payload[3]))
+                f.close()
+                
+                if (isMultiFile):
+                    currentFile += 1
+               
+                    if (len(infoDict['files']) != currentFile and sizeOfFiles[currentFile] <= 0):
+                        f.close()
+                        f = open(infoDict['files'][currentFile-1]['path'][0], 'wb')
+            print('Number of Pieces: ' + str(index+1) + '/' + str(numberOfPieces))
+        elif (lengthOfPiecesLeft[index] - blockSize <= 0 and sizeOfFiles[currentFile] - blockSize <= 0):
+            #print('SECOND ELSEIF!')
+            sentSize = min(lengthOfPiecesLeft[index], sizeOfFiles[currentFile])
+            requestMessage = pack('>IBIII', 13, 6, index, begin, sentSize) 
+            #print('Message Sent: ' + ':'.join(x.encode('hex') for x in requestMessage)) 
+
+            sock.send(requestMessage)
+            messageLengthStr = sock.recv(4)
+            messageLengthInt = parse_message_length(messageLengthStr)
+            
+            payload = parse_message(messageLengthInt, sock, numberOfPieces)
+            print('End of one File!')
+            if (payload[0] == 7):
+                lengthOfPiecesLeft[index] -= len(payload[3])
+                length -= len(payload[3])
+                if (isMultiFile):
+                    sizeOfFiles[currentFile] -= len(payload[3])
+                print(sizeOfFiles[currentFile])
+                if (sizeOfFiles[currentFile] <= 0):
+                    begin += sentSize
+                    if (isMultiFile):
+                        f = open(infoDict['files'][currentFile-1]['path'][0], 'ab')
+                    else:
+                        f = open(infoDict['name'], 'ab')
+
+                    #piece += str(payload[3])
+                    write_to_file(f, str(payload[3]))
+                    f.close()
+                    if (isMultiFile):
+                        currentFile += 1
+                        if (len(infoDict['files']) != currentFile-1):
+                            f = open(infoDict['files'][currentFile-1]['path'][0], 'wb')
+                            f.close()
+                if (lengthOfPiecesLeft[index] <= 0):
+                    index += 1
+                    begin = 0
+                    
             print('Number of Pieces: ' + str(index+1) + '/' + str(numberOfPieces))
         else:
             # Get a block of size equal to the rest of the piece.
@@ -199,29 +275,16 @@ def client():
                 verification = verify_piece(piece, infoDict, index)
 
                 if(verification):
-                    if (isMultiFile):
-                        for x in range(1, numFilesInPiece):
-                            f.close()
-                            f = open(infoDict['files'][currentFile-1]['path'][0], 'ab')
-                            write_to_file(f, piece[fileOffset[x-1]:fileOffset[x]])
-                            
-                        if (len(infoDict['files']) != currentFile-1):
-                            f = open(infoDict['files'][currentFile-1]['path'][0], 'wb')
-                            f.close()
-                        currentFile += 1
-                        numFilesInPiece = 0
-                        fileOffset = [0]
-                    else:
-                        write_to_file(f, piece)
+                    write_to_file(f, piece)
+                    #print(os.path.getsize('C:\Users\Xialin\Documents\CS 3251\BitTorrentClient\\' + infoDict['files'][currentFile-1]['path'][0]))
                     sizeDownloaded += len(payload[3])
                     length -= len(payload[3])
                     index += 1
-                    #print(os.path.getsize('C:\Users\Xialin\Documents\CS 3251\BitTorrentClient\\' + infoDict['files'][currentFile-1]['path'][0]))
                 else:
                     if (isMultiFile):
-                        sizeOfFiles[currentFile] = sizeOfFilesCopy[currentFile]
-                    lengthOfPiecesLeft[index] = lengthOfPieceCopy[index]
-                    length += lengthOfPieceCopy[index]
+                        sizeOfFiles[currentFile] += lengthOfPiece
+                    lengthOfPiecesLeft[index] += lengthOfPiece
+                    length += lengthOfPiece
                 piece = ''
                 f.close()
                 
@@ -410,6 +473,8 @@ def parse_message(messageLengthInt, sock, numberOfPieces):
                 currIndex += 1
                 #f.write(segment)
                 sizeReceived += len(segment)
+            
+
             blockTotalSize += len(block)
             print('Index: ' + str(index))
             print('Begin: ' + str(begin))
